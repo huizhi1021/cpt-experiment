@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPT 持续操作测试</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 28px; margin-bottom: 5px; }
+        .header p { font-size: 14px; opacity: 0.9; }
+        .content { padding: 30px; }
+        .section { margin-bottom: 30px; }
+        .section-title { font-size: 18px; font-weight: bold; color: #1e3c72; margin-bottom: 15px; border-bottom: 2px solid #2a5298; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #333; font-weight: 500; font-size: 14px; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; font-family: inherit; }
+        input:focus, select:focus { outline: none; border-color: #2a5298; box-shadow: 0 0 5px rgba(42,82,152,0.3); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .button-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 5px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(42,82,152,0.3); }
+        .btn-secondary { background: #f0f0f0; color: #333; }
+        .btn-secondary:hover:not(:disabled) { background: #e0e0e0; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .hidden { display: none !important; }
+        .experiment-container { display: flex; flex-direction: column; align-items: center; }
+        .trial-info { background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; width: 100%; text-align: center; font-size: 14px; color: #666; }
+        .stimulus-display { background: #f0f0f0; border: 3px solid #ddd; border-radius: 10px; width: 300px; height: 300px; display: flex; align-items: center; justify-content: center; margin: 30px 0; }
+        .stimulus { font-size: 120px; font-weight: bold; color: #1e3c72; font-family: 'Arial', monospace; }
+        .response-button { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 20px 40px; font-size: 18px; border-radius: 5px; width: 250px; margin: 20px 0; }
+        .response-button:hover:not(:disabled) { transform: scale(1.05); }
+        .feedback { font-size: 24px; font-weight: bold; min-height: 32px; text-align: center; margin: 10px 0; }
+        .feedback.hit { color: #00AA00; }
+        .feedback.miss { color: #FF9900; }
+        .feedback.false_alarm { color: #FF0000; }
+        .feedback.correct_rejection { color: #00AA00; }
+        .results-container { width: 100%; }
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .result-card { background: #f9f9f9; padding: 15px; border-radius: 5px; text-align: center; border-left: 4px solid #2a5298; }
+        .result-label { font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 8px; }
+        .result-value { font-size: 28px; font-weight: bold; color: #1e3c72; }
+        .results-section { background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .results-section h3 { color: #1e3c72; margin-bottom: 10px; font-size: 16px; }
+        .metric-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e0e0e0; font-size: 14px; }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-label { color: #666; }
+        .metric-value { font-weight: bold; color: #1e3c72; font-family: 'Courier New', monospace; }
+        .interpretation { background: #e8f4f8; border-left: 4px solid #2a5298; padding: 12px; border-radius: 5px; font-size: 14px; margin-top: 15px; color: #333; }
+        .alert { padding: 12px; border-radius: 5px; margin-bottom: 15px; font-size: 14px; }
+        .alert-info { background: #e8f4f8; border-left: 4px solid #2a5298; color: #1e3c72; }
+        .progress-bar { width: 100%; height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden; margin-top: 10px; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%); transition: width 0.3s; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>持续操作测试 (CPT)</h1>
+        <p>学术版 · 基于信号检测论的认知心理学评估</p>
+    </div>
+    <div class="content">
+
+        <!-- 设置阶段 -->
+        <div id="setupPhase" class="section">
+            <div class="section-title">实验配置</div>
+            <div class="form-group">
+                <label>参与者信息</label>
+                <div class="form-row">
+                    <input type="text" id="participantId" placeholder="参与者ID（可填昵称）" />
+                    <input type="text" id="participantAge" placeholder="年龄" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>实验范式</label>
+                <select id="paradigm">
+                    <option value="AX-CPT">AX-CPT（反应时灵敏度任务）</option>
+                    <option value="Oddball">Oddball（特异刺激检测）</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <div class="form-row">
+                    <div>
+                        <label>总试次数</label>
+                        <input type="number" id="totalTrials" value="100" min="20" max="500" />
+                    </div>
+                    <div>
+                        <label>目标刺激概率</label>
+                        <input type="number" id="targetProbability" value="0.3" min="0.1" max="0.7" step="0.1" />
+                    </div>
+                </div>
+            </div>
+            <div class="alert alert-info">💡 实验分练习（10试次）和正式两阶段。当看到字母 <strong>X</strong> 时请立即按空格键或点击按钮。</div>
+            <div class="button-group">
+                <button class="btn-primary" onclick="startPractice()">开始练习</button>
+            </div>
+        </div>
+
+        <!-- 练习阶段 -->
+        <div id="practicePhase" class="section hidden">
+            <div class="section-title">练习阶段</div>
+            <div class="alert alert-info">目标字母：<strong>X</strong>。看到 X 时尽快反应，其他字母不要反应。练习数据不计入分析。</div>
+            <div class="experiment-container">
+                <div class="trial-info">
+                    <div id="practiceTrialText">准备好了吗？</div>
+                    <div class="progress-bar"><div class="progress-fill" id="practiceProgress" style="width:0%"></div></div>
+                </div>
+                <div class="stimulus-display">
+                    <div class="stimulus" id="practiceStimulus"></div>
+                </div>
+                <button class="response-button" id="practiceResponseBtn" onclick="respondToPractice()" disabled>有反应（空格键）</button>
+                <div class="feedback" id="practiceFeedback"></div>
+            </div>
+            <div id="practiceResults" class="hidden" style="text-align:center; margin-top:20px;">
+                <h3>练习完成</h3>
+                <p style="margin:10px 0;">正确率：<strong id="practiceAccuracy">0</strong>%</p>
+                <div class="alert alert-info" style="margin-top:15px;">正确率 ≥ 70% 即可开始正式测试。</div>
+                <div class="button-group">
+                    <button class="btn-primary" id="formalBtn" onclick="startFormal()">开始正式测试</button>
+                    <button class="btn-secondary" onclick="retryPractice()">重新练习</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 正式阶段 -->
+        <div id="formalPhase" class="section hidden">
+            <div class="section-title">正式测试</div>
+            <div class="experiment-container">
+                <div class="trial-info">
+                    <div id="formalTrialText">准备好了吗？</div>
+                    <div class="progress-bar"><div class="progress-fill" id="formalProgress" style="width:0%"></div></div>
+                </div>
+                <div class="stimulus-display">
+                    <div class="stimulus" id="formalStimulus"></div>
+                </div>
+                <button class="response-button" id="formalResponseBtn" onclick="respondToFormal()" disabled>有反应（空格键）</button>
+                <div class="feedback" id="formalFeedback"></div>
+            </div>
+        </div>
+
+        <!-- 结果阶段 -->
+        <div id="resultsPhase" class="section hidden">
+            <div class="section-title">数据分析报告</div>
+            <div class="results-grid" id="resultsGrid"></div>
+            <div class="results-section">
+                <h3>信号检测论分析（Signal Detection Theory）</h3>
+                <div class="metric-row"><span class="metric-label">灵敏度 (d')</span><span class="metric-value" id="dPrime">-</span></div>
+                <div class="metric-row"><span class="metric-label">反应倾向 (β)</span><span class="metric-value" id="beta">-</span></div>
+                <div class="interpretation" id="sdtInterpretation"></div>
+            </div>
+            <div class="results-section">
+                <h3>反应时间分析</h3>
+                <div class="metric-row"><span class="metric-label">命中平均反应时间</span><span class="metric-value" id="hitRtMean">-</span></div>
+                <div class="metric-row"><span class="metric-label">命中反应时间标准差</span><span class="metric-value" id="hitRtStd">-</span></div>
+                <div class="metric-row"><span class="metric-label">误报平均反应时间</span><span class="metric-value" id="faRtMean">-</span></div>
+                <div class="metric-row"><span class="metric-label">一致性指标</span><span class="metric-value" id="consistency">-</span></div>
+            </div>
+            <div class="alert alert-info" style="margin-top:20px;">✅ 感谢参与！数据已记录。</div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let sessionId = null;
+    let config = null;
+    let practiceRunning = false;
+    let formalRunning = false;
+    let stimulusStartTime = 0;
+    let hasResponded = false;
+    let currentTrial = null;
+
+    // 空格键响应
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            if (practiceRunning) document.getElementById('practiceResponseBtn').click();
+            else if (formalRunning) document.getElementById('formalResponseBtn').click();
+        }
+    });
+
+    async function startPractice() {
+        // 创建 session
+        const res = await fetch('/api/init-session', { method: 'POST' });
+        const data = await res.json();
+        sessionId = data.session_id;
+
+        config = {
+            session_id: sessionId,
+            paradigm: document.getElementById('paradigm').value,
+            total_trials: parseInt(document.getElementById('totalTrials').value),
+            target_probability: parseFloat(document.getElementById('targetProbability').value),
+            participant_info: {
+                id: document.getElementById('participantId').value || '匿名',
+                age: document.getElementById('participantAge').value || '-'
+            }
+        };
+
+        await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        await fetch('/api/start-practice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId })
+        });
+
+        document.getElementById('setupPhase').classList.add('hidden');
+        document.getElementById('practicePhase').classList.remove('hidden');
+        document.getElementById('practiceResults').classList.add('hidden');
+        practiceRunning = true;
+        loadPracticeTrial();
+    }
+
+    async function loadPracticeTrial() {
+        const res = await fetch(`/api/next-trial?session_id=${sessionId}`);
+        const data = await res.json();
+        if (data.status === 'completed') { endPractice(); return; }
+        currentTrial = data;
+        document.getElementById('practiceTrialText').textContent = `试次 ${data.trial_number}/10`;
+        document.getElementById('practiceStimulus').textContent = data.stimulus;
+        document.getElementById('practiceFeedback').textContent = '';
+        document.getElementById('practiceFeedback').className = 'feedback';
+        document.getElementById('practiceResponseBtn').disabled = false;
+        document.getElementById('practiceProgress').style.width = (data.trial_number / 10 * 100) + '%';
+        hasResponded = false;
+        stimulusStartTime = Date.now();
+        setTimeout(() => { if (practiceRunning && !hasResponded) submitPracticeResponse(false); }, 800);
+    }
+
+    async function respondToPractice() {
+        if (!practiceRunning || hasResponded) return;
+        hasResponded = true;
+        document.getElementById('practiceResponseBtn').disabled = true;
+        await submitPracticeResponse(true, Date.now() - stimulusStartTime);
+    }
+
+    async function submitPracticeResponse(hasResponse, rt = null) {
+        await fetch('/api/submit-response', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId, stimulus: currentTrial.stimulus, is_target: currentTrial.is_target, has_response: hasResponse, response_time: rt })
+        });
+        const isCorrect = (currentTrial.is_target && hasResponse) || (!currentTrial.is_target && !hasResponse);
+        const fb = document.getElementById('practiceFeedback');
+        fb.textContent = isCorrect ? '✓' : '✗';
+        fb.className = 'feedback ' + (isCorrect ? 'hit' : 'miss');
+        setTimeout(loadPracticeTrial, 1000);
+    }
+
+    async function endPractice() {
+        practiceRunning = false;
+        const res = await fetch(`/api/get-practice-results?session_id=${sessionId}`);
+        const results = await res.json();
+        document.getElementById('practiceAccuracy').textContent = results.accuracy;
+        document.getElementById('formalBtn').disabled = results.accuracy < 70;
+        document.getElementById('practiceResults').classList.remove('hidden');
+    }
+
+    function retryPractice() {
+        document.getElementById('practiceResults').classList.add('hidden');
+        practiceRunning = true;
+        loadPracticeTrial();
+    }
+
+    async function startFormal() {
+        await fetch('/api/start-formal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId })
+        });
+        document.getElementById('practicePhase').classList.add('hidden');
+        document.getElementById('formalPhase').classList.remove('hidden');
+        formalRunning = true;
+        loadFormalTrial();
+    }
+
+    async function loadFormalTrial() {
+        const res = await fetch(`/api/next-trial?session_id=${sessionId}`);
+        const data = await res.json();
+        if (data.status === 'completed') { endFormal(); return; }
+        currentTrial = data;
+        document.getElementById('formalTrialText').textContent = `试次 ${data.trial_number}/${config.total_trials}`;
+        document.getElementById('formalStimulus').textContent = data.stimulus;
+        document.getElementById('formalFeedback').textContent = '';
+        document.getElementById('formalFeedback').className = 'feedback';
+        document.getElementById('formalResponseBtn').disabled = false;
+        document.getElementById('formalProgress').style.width = (data.trial_number / config.total_trials * 100) + '%';
+        hasResponded = false;
+        stimulusStartTime = Date.now();
+        setTimeout(() => { if (formalRunning && !hasResponded) submitFormalResponse(false); }, 800);
+    }
+
+    async function respondToFormal() {
+        if (!formalRunning || hasResponded) return;
+        hasResponded = true;
+        document.getElementById('formalResponseBtn').disabled = true;
+        await submitFormalResponse(true, Date.now() - stimulusStartTime);
+    }
+
+    async function submitFormalResponse(hasResponse, rt = null) {
+        await fetch('/api/submit-response', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId, stimulus: currentTrial.stimulus, is_target: currentTrial.is_target, has_response: hasResponse, response_time: rt })
+        });
+        const isCorrect = (currentTrial.is_target && hasResponse) || (!currentTrial.is_target && !hasResponse);
+        const fb = document.getElementById('formalFeedback');
+        fb.textContent = isCorrect ? '✓' : '✗';
+        fb.className = 'feedback ' + (currentTrial.is_target ? (hasResponse ? 'hit' : 'miss') : (hasResponse ? 'false_alarm' : 'correct_rejection'));
+        setTimeout(loadFormalTrial, 1000);
+    }
+
+    async function endFormal() {
+        formalRunning = false;
+        const res = await fetch(`/api/get-formal-results?session_id=${sessionId}`);
+        const results = await res.json();
+
+        const pm = results.performance_metrics;
+        const metrics = [
+            ['命中', pm.hits], ['漏检', pm.misses],
+            ['误报', pm.false_alarms], ['正确拒绝', pm.correct_rejections],
+            ['命中率', (pm.hit_rate * 100).toFixed(1) + '%'],
+            ['误报率', (pm.false_alarm_rate * 100).toFixed(1) + '%']
+        ];
+        document.getElementById('resultsGrid').innerHTML = metrics.map(([l, v]) =>
+            `<div class="result-card"><div class="result-label">${l}</div><div class="result-value">${v}</div></div>`
+        ).join('');
+
+        document.getElementById('dPrime').textContent = results.sdt_measures.d_prime;
+        document.getElementById('beta').textContent = results.sdt_measures.beta;
+        document.getElementById('sdtInterpretation').innerHTML = `<strong>解释：</strong> ${results.sdt_measures.interpretation}`;
+        const rt = results.reaction_time_measures;
+        document.getElementById('hitRtMean').textContent = rt.hit_rt_mean_ms + ' ms';
+        document.getElementById('hitRtStd').textContent = rt.hit_rt_std_ms + ' ms';
+        document.getElementById('faRtMean').textContent = rt.false_alarm_rt_mean_ms + ' ms';
+        document.getElementById('consistency').textContent = rt.consistency;
+
+        document.getElementById('formalPhase').classList.add('hidden');
+        document.getElementById('resultsPhase').classList.remove('hidden');
+    }
+</script>
+</body>
+</html>
